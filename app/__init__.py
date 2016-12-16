@@ -41,7 +41,6 @@ class Application(Application):
 
         self.user = User()
         self.entries = Entries()
-        self.log = PrettyPrintLog()
 
         self.init_database()
 

@@ -53,10 +53,8 @@ class User(Base):
     def add(cls, info):
         session = DBSession()
         session.add(cls(
-            email=info.get('email'),
-            name=info.get('name'),
-            hashed_password=info.get('hashed_password').decode(),
-        ))
+            email=info.get('email'), name=info.get('name'),
+            hashed_password=info.get('hashed_password').decode()))
         try:
             session.commit()
         except Exception as e:

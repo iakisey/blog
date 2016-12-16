@@ -19,10 +19,6 @@ class BaseHandler(RequestHandler):
     def entries(self):
         return self.application.entries
 
-    @property
-    def log(self):
-        return self.application.log
-
     def get_current_user(self):
         user_id = self.get_secure_cookie('blogdemo_user')
         return self.user.get_by_id(int(user_id)) if user_id else None
@@ -31,7 +27,7 @@ class BaseHandler(RequestHandler):
     def async_exec(self, flag, data):
         if flag == 'get_all':
             out = self.entries.get_all()
-            out[:data] if len(out) > data else out
+            out = out[:data] if len(out) > data else out
         elif flag == 'get_by_slug':
             out = self.entries.get_by_slug(data)
         elif flag == 'any_user_exists':
@@ -50,7 +46,7 @@ class BaseHandler(RequestHandler):
             out = self.user.hash_pd(data)
         elif flag == 'user_id':
             out = self.user.get_by_email(data.get('email')).id \
-            if self.user.add(data) else None
+                if self.user.add(data) else None
         return out
 
 
@@ -126,8 +122,7 @@ class ComposeHandler(BaseHandler):
             yield self.async_exec('entries.update', {
                 'title': title, 'markdown': text, 'html': html, 'id': int(id)})
         else:
-            slug = normalize('NFKD', title).encode(
-                'ascii', 'ignore')
+            slug = normalize('NFKD', title).encode('ascii', 'ignore')
             slug = sub(r'[^\w]+', ' ', slug.decode())
             slug = '-'.join(slug.lower().strip().split())
             if not slug:
@@ -151,7 +146,8 @@ class AuthCreateHandler(BaseHandler):
 
     @coroutine
     def post(self):
-        hashed_password = yield self.async_exec('gen_hash_pd', self.get_argument('password'))
+        hashed_password = yield self.async_exec(
+            'hash_pd', self.get_argument('password'))
         user_info = {
             'email': self.get_argument('email'),
             'name': self.get_argument('name'),
@@ -176,9 +172,11 @@ class AuthLoginHandler(BaseHandler):
 
     @coroutine
     def post(self):
-        user = yield self.async_exec('verify_user', {
-            'email': self.get_argument('email'),
-            'password': self.get_argument('password'),
+        user = yield self.async_exec(
+            'verify_user',
+            {
+                'email': self.get_argument('email'),
+                'password': self.get_argument('password'),
             })
         if not user:
             self.render('login.html', error='incorrect email or password')

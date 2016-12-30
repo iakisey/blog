@@ -5,7 +5,7 @@ import datetime
 
 class PrettyPrintLog:
     def __init__(self):
-        self._path = os.path.join(sys.path[0], 'Log')
+        self._path = os.path.join(sys.path[0], 'log')
 
         os.mkdir(self._path) if not os.path.exists(self._path) else None
 

@@ -1,0 +1,20 @@
+version: '2'
+services:
+
+    postgres:
+        image: postgres
+        environment:
+            POSTGRES_DB: test
+            POSTGRES_USER: test
+            POSTGRES_PASSWORD: test
+        ports:
+            - "5432"
+    blog:
+        build: .
+        links:
+            - postgres
+        command: python run.py
+        volumes:
+            - .:/usr/src/blog
+        ports:
+            - "8888:8888"

@@ -21,32 +21,30 @@ class BaseHandler(RequestHandler):
 
     def get_current_user(self):
         user_id = self.get_secure_cookie('blogdemo_user')
-        return self.user.get_by_id(int(user_id)) if user_id else None
+        return self.user.get_by_constraint({'id': int(user_id)}) \
+            if user_id else None
 
     @run_on_executor
     def async_exec(self, flag, data):
-        if flag == 'get_all':
-            out = self.entries.get_all()
-            out = out[:data] if len(out) > data else out
-        elif flag == 'get_by_slug':
-            out = self.entries.get_by_slug(data)
-        elif flag == 'any_user_exists':
-            out = bool(self.user.get_one())
-        elif flag == 'entries.add':
+        if flag == 'entries.add':
             out = self.entries.add(data)
         elif flag == 'entries.update':
             out = self.entries.update(data)
-        elif flag == 'entries.get_by_id':
-            out = self.entries.get_by_id(data)
-        elif flag == 'entries.get_by_slug':
-            out = self.entries.get_by_slug(data)
+        elif flag == 'entries.get':
+            out = self.entries.get_by_constraint(data)
+        elif flag == 'get_all':
+            out = self.entries.get_by_constraint(
+                {}, {'published': 'desc'}, data)
+        # --
         elif flag == 'verify_user':
             out = self.user.verify_user(data['email'], data['password'])
         elif flag == 'hash_pd':
             out = self.user.hash_pd(data)
         elif flag == 'user_id':
-            out = self.user.get_by_email(data.get('email')).id \
+            out = self.user.get_by_constraint({'email': data['email']}).id \
                 if self.user.add(data) else None
+        elif flag == 'any_user_exists':
+            out = bool(self.user.get_by_constraint())
         return out
 
 
@@ -67,7 +65,7 @@ class EntryHandler(BaseHandler):
     @coroutine
     @authenticated
     def get(self, slug):
-        entry = yield self.async_exec('get_by_slug', slug)
+        entry = yield self.async_exec('entries.get', {'slug': slug})
         if not entry:
             raise HTTPError(404)
         self.render('entry.html', entry=entry)
@@ -102,7 +100,7 @@ class ComposeHandler(BaseHandler):
     def get(self):
         id = self.get_argument('id', None)
         if id:
-            entry = yield self.async_exec('entries.get_by_id', int(id))
+            entry = yield self.async_exec('entries.get', {'id': int(id)})
         else:
             entry = None
         self.render('compose.html', entry=entry)
@@ -115,12 +113,14 @@ class ComposeHandler(BaseHandler):
         text = self.get_argument('markdown')
         html = markdown(text)
         if id:
-            entry = yield self.async_exec('entries.get_by_id', int(id))
+            entry = yield self.async_exec('entries.get', {'id': int(id)})
             if not entry:
                 raise HTTPError(404)
             slug = entry.slug
             yield self.async_exec('entries.update', {
-                'title': title, 'markdown': text, 'html': html, 'id': int(id)})
+                'id': {
+                    'title': title, 'markdown': text,
+                    'html': html, 'id': int(id)}})
         else:
             slug = normalize('NFKD', title).encode('ascii', 'ignore')
             slug = sub(r'[^\w]+', ' ', slug.decode())
@@ -128,7 +128,7 @@ class ComposeHandler(BaseHandler):
             if not slug:
                 slug = 'entry'
             while True:
-                e = yield self.async_exec('entries.get_by_slug', slug)
+                e = yield self.async_exec('entries.get', {'slug': slug})
                 if not e:
                     break
                 slug += '-2'

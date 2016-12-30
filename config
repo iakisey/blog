@@ -2,5 +2,5 @@
 port = 8888
 
 [DB]
-url = postgresql://xmrbi:xmrbi@127.0.0.1:5432/wechat
+url = postgresql://test:test@postgres:5432/test
 mysql_url = mysql://root:123456@127.0.0.1:3306/test
